@@ -8,6 +8,7 @@ function getClient() {
 
 export default async function handler(req, res) {
   const supabase = getClient();
+  const debug = req.query?.debug === '1';
 
   if (req.method === 'GET') {
     const { data, error } = await supabase
@@ -15,7 +16,10 @@ export default async function handler(req, res) {
       .select('id, name, score, ts')
       .order('score', { ascending: false })
       .limit(TOP_N);
-    if (error) return res.status(500).json({ error: 'failed to load ranking' });
+    if (error) {
+      console.error('ranking GET error:', error);
+      return res.status(500).json({ error: 'failed to load ranking', detail: debug ? error.message : undefined });
+    }
     return res.status(200).json({ list: data });
   }
 
@@ -32,7 +36,10 @@ export default async function handler(req, res) {
       .insert({ name, score, ts: Date.now() })
       .select('id, name, score, ts')
       .single();
-    if (error) return res.status(500).json({ error: 'failed to save score' });
+    if (error) {
+      console.error('ranking POST error:', error);
+      return res.status(500).json({ error: 'failed to save score', detail: debug ? error.message : undefined });
+    }
 
     const { count, error: countError } = await supabase
       .from('ranking')
