@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Flag Rush" />
+  <meta name="theme-color" content="#060e1c" />
+  <title>Flag Rush</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: #060e1c; overscroll-behavior: none; }
+    #root { height: 100%; }
+    button { -webkit-appearance: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+<script>
+const { useState, useEffect, useRef } = React;
+
+const COUNTRIES = [
+  { name: "Afghanistan", emoji: "🇦🇫", code: "AF" },
+  { name: "Albania", emoji: "🇦🇱", code: "AL" },
+  { name: "Alemania", emoji: "🇩🇪", code: "DE" },
+  { name: "Andorra", emoji: "🇦🇩", code: "AD" },
+  { name: "Angola", emoji: "🇦🇴", code: "AO" },
+  { name: "Antigua y Barbuda", emoji: "🇦🇬", code: "AG" },
+  { name: "Arabia Saudita", emoji: "🇸🇦", code: "SA" },
+  { name: "Argelia", emoji: "🇩🇿", code: "DZ" },
+  { name: "Argentina", emoji: "🇦🇷", code: "AR" },
+  { name: "Armenia", emoji: "🇦🇲", code: "AM" },
+  { name: "Australia", emoji: "🇦🇺", code: "AU" },
+  { name: "Austria", emoji: "🇦🇹", code: "AT" },
+  { name: "Azerbaiyán", emoji: "🇦🇿", code: "AZ" },
+  { name: "Bahamas", emoji: "🇧🇸", code: "BS" },
+  { name: "Bahréin", emoji: "🇧🇭", code: "BH" },
+  { name: "Bangladesh", emoji: "🇧🇩", code: "BD" },
+  { name: "Barbados", emoji: "🇧🇧", code: "BB" },
+  { name: "Bélgica", emoji: "🇧🇪", code: "BE" },
+  { name: "Belice", emoji: "🇧🇿", code: "BZ" },
+  { name: "Benín", emoji: "🇧🇯", code: "BJ" },
+  { name: "Bielorrusia", emoji: "🇧🇾", code: "BY" },
+  { name: "Bolivia", emoji: "🇧🇴", code: "BO" },
+  { name: "Bosnia y Herzegovina", emoji: "🇧🇦", code: "BA" },
+  { name: "Botsuana", emoji: "🇧🇼", code: "BW" },
+  { name: "Brasil", emoji: "🇧🇷", code: "BR" },
+  { name: "Brunéi", emoji: "🇧🇳", code: "BN" },
+  { name: "Bulgaria", emoji: "🇧🇬", code: "BG" },
+  { name: "Burkina Faso", emoji: "🇧🇫", code: "BF" },
+  { name: "Burundi", emoji: "🇧🇮", code: "BI" },
+  { name: "Bután", emoji: "🇧🇹", code: "BT" },
+  { name: "Cabo Verde", emoji: "🇨🇻", code: "CV" },
+  { name: "Camboya", emoji: "🇰🇭", code: "KH" },
+  { name: "Camerún", emoji: "🇨🇲", code: "CM" },
+  { name: "Canadá", emoji: "🇨🇦", code: "CA" },
+  { name: "Catar", emoji: "🇶🇦", code: "QA" },
+  { name: "Chad", emoji: "🇹🇩", code: "TD" },
+  { name: "Chile", emoji: "🇨🇱", code: "CL" },
+  { name: "China", emoji: "🇨🇳", code: "CN" },
+  { name: "Chipre", emoji: "🇨🇾", code: "CY" },
+  { name: "Colombia", emoji: "🇨🇴", code: "CO" },
+  { name: "Comoras", emoji: "🇰🇲", code: "KM" },
+  { name: "Congo", emoji: "🇨🇬", code: "CG" },
+  { name: "Corea del Norte", emoji: "🇰🇵", code: "KP" },
+  { name: "Corea del Sur", emoji: "🇰🇷", code: "KR" },
+  { name: "Costa de Marfil", emoji: "🇨🇮", code: "CI" },
+  { name: "Costa Rica", emoji: "🇨🇷", code: "CR" },
+  { name: "Croacia", emoji: "🇭🇷", code: "HR" },
+  { name: "Cuba", emoji: "🇨🇺", code: "CU" },
+  { name: "Dinamarca", emoji: "🇩🇰", code: "DK" },
+  { name: "Dominica", emoji: "🇩🇲", code: "DM" },
+  { name: "Ecuador", emoji: "🇪🇨", code: "EC" },
+  { name: "Egipto", emoji: "🇪🇬", code: "EG" },
+  { name: "El Salvador", emoji: "🇸🇻", code: "SV" },
+  { name: "Emiratos Árabes Unidos", emoji: "🇦🇪", code: "AE" },
+  { name: "Eritrea", emoji: "🇪🇷", code: "ER" },
+  { name: "Eslovaquia", emoji: "🇸🇰", code: "SK" },
+  { name: "Eslovenia", emoji: "🇸🇮", code: "SI" },
+  { name: "España", emoji: "🇪🇸", code: "ES" },
+  { name: "Estados Unidos", emoji: "🇺🇸", code: "US" },
+  { name: "Estonia", emoji: "🇪🇪", code: "EE" },
+  { name: "Esuatini", emoji: "🇸🇿", code: "SZ" },
+  { name: "Etiopía", emoji: "🇪🇹", code: "ET" },
+  { name: "Filipinas", emoji: "🇵🇭", code: "PH" },
+  { name: "Finlandia", emoji: "🇫🇮", code: "FI" },
+  { name: "Fiyi", emoji: "🇫🇯", code: "FJ" },
+  { name: "Francia", emoji: "🇫🇷", code: "FR" },
+  { name: "Gabón", emoji: "🇬🇦", code: "GA" },
+  { name: "Gambia", emoji: "🇬🇲", code: "GM" },
+  { name: "Georgia", emoji: "🇬🇪", code: "GE" },
+  { name: "Ghana", emoji: "🇬🇭", code: "GH" },
+  { name: "Granada", emoji: "🇬🇩", code: "GD" },
+  { name: "Grecia", emoji: "🇬🇷", code: "GR" },
+  { name: "Guatemala", emoji: "🇬🇹", code: "GT" },
+  { name: "Guinea", emoji: "🇬🇳", code: "GN" },
+  { name: "Guinea-Bisáu", emoji: "🇬🇼", code: "GW" },
+  { name: "Guinea Ecuatorial", emoji: "🇬🇶", code: "GQ" },
+  { name: "Guyana", emoji: "🇬🇾", code: "GY" },
+  { name: "Haití", emoji: "🇭🇹", code: "HT" },
+  { name: "Honduras", emoji: "🇭🇳", code: "HN" },
+  { name: "Hungría", emoji: "🇭🇺", code: "HU" },
+  { name: "India", emoji: "🇮🇳", code: "IN" },
+  { name: "Indonesia", emoji: "🇮🇩", code: "ID" },
+  { name: "Irak", emoji: "🇮🇶", code: "IQ" },
+  { name: "Irán", emoji: "🇮🇷", code: "IR" },
+  { name: "Irlanda", emoji: "🇮🇪", code: "IE" },
+  { name: "Islandia", emoji: "🇮🇸", code: "IS" },
+  { name: "Islas Marshall", emoji: "🇲🇭", code: "MH" },
+  { name: "Islas Salomón", emoji: "🇸🇧", code: "SB" },
+  { name: "Israel", emoji: "🇮🇱", code: "IL" },
+  { name: "Italia", emoji: "🇮🇹", code: "IT" },
+  { name: "Jamaica", emoji: "🇯🇲", code: "JM" },
+  { name: "Japón", emoji: "🇯🇵", code: "JP" },
+  { name: "Jordania", emoji: "🇯🇴", code: "JO" },
+  { name: "Kazajistán", emoji: "🇰🇿", code: "KZ" },
+  { name: "Kenia", emoji: "🇰🇪", code: "KE" },
+  { name: "Kirguistán", emoji: "🇰🇬", code: "KG" },
+  { name: "Kiribati", emoji: "🇰🇮", code: "KI" },
+  { name: "Kuwait", emoji: "🇰🇼", code: "KW" },
+  { name: "Laos", emoji: "🇱🇦", code: "LA" },
+  { name: "Lesoto", emoji: "🇱🇸", code: "LS" },
+  { name: "Letonia", emoji: "🇱🇻", code: "LV" },
+  { name: "Líbano", emoji: "🇱🇧", code: "LB" },
+  { name: "Liberia", emoji: "🇱🇷", code: "LR" },
+  { name: "Libia", emoji: "🇱🇾", code: "LY" },
+  { name: "Liechtenstein", emoji: "🇱🇮", code: "LI" },
+  { name: "Lituania", emoji: "🇱🇹", code: "LT" },
+  { name: "Luxemburgo", emoji: "🇱🇺", code: "LU" },
+  { name: "Madagascar", emoji: "🇲🇬", code: "MG" },
+  { name: "Malasia", emoji: "🇲🇾", code: "MY" },
+  { name: "Malaui", emoji: "🇲🇼", code: "MW" },
+  { name: "Maldivas", emoji: "🇲🇻", code: "MV" },
+  { name: "Malí", emoji: "🇲🇱", code: "ML" },
+  { name: "Malta", emoji: "🇲🇹", code: "MT" },
+  { name: "Marruecos", emoji: "🇲🇦", code: "MA" },
+  { name: "Mauricio", emoji: "🇲🇺", code: "MU" },
+  { name: "Mauritania", emoji: "🇲🇷", code: "MR" },
+  { name: "México", emoji: "🇲🇽", code: "MX" },
+  { name: "Micronesia", emoji: "🇫🇲", code: "FM" },
+  { name: "Moldavia", emoji: "🇲🇩", code: "MD" },
+  { name: "Mónaco", emoji: "🇲🇨", code: "MC" },
+  { name: "Mongolia", emoji: "🇲🇳", code: "MN" },
+  { name: "Montenegro", emoji: "🇲🇪", code: "ME" },
+  { name: "Mozambique", emoji: "🇲🇿", code: "MZ" },
+  { name: "Myanmar", emoji: "🇲🇲", code: "MM" },
+  { name: "Namibia", emoji: "🇳🇦", code: "NA" },
+  { name: "Nauru", emoji: "🇳🇷", code: "NR" },
+  { name: "Nepal", emoji: "🇳🇵", code: "NP" },
+  { name: "Nicaragua", emoji: "🇳🇮", code: "NI" },
+  { name: "Níger", emoji: "🇳🇪", code: "NE" },
+  { name: "Nigeria", emoji: "🇳🇬", code: "NG" },
+  { name: "Noruega", emoji: "🇳🇴", code: "NO" },
+  { name: "Nueva Zelanda", emoji: "🇳🇿", code: "NZ" },
+  { name: "Omán", emoji: "🇴🇲", code: "OM" },
+  { name: "Países Bajos", emoji: "🇳🇱", code: "NL" },
+  { name: "Pakistán", emoji: "🇵🇰", code: "PK" },
+  { name: "Palaos", emoji: "🇵🇼", code: "PW" },
+  { name: "Panamá", emoji: "🇵🇦", code: "PA" },
+  { name: "Papúa Nueva Guinea", emoji: "🇵🇬", code: "PG" },
+  { name: "Paraguay", emoji: "🇵🇾", code: "PY" },
+  { name: "Perú", emoji: "🇵🇪", code: "PE" },
+  { name: "Polonia", emoji: "🇵🇱", code: "PL" },
+  { name: "Portugal", emoji: "🇵🇹", code: "PT" },
+  { name: "Reino Unido", emoji: "🇬🇧", code: "GB" },
+  { name: "República Centroafricana", emoji: "🇨🇫", code: "CF" },
+  { name: "Rep. Dem. del Congo", emoji: "🇨🇩", code: "CD" },
+  { name: "República Dominicana", emoji: "🇩🇴", code: "DO" },
+  { name: "Ruanda", emoji: "🇷🇼", code: "RW" },
+  { name: "Rumania", emoji: "🇷🇴", code: "RO" },
+  { name: "Rusia", emoji: "🇷🇺", code: "RU" },
+  { name: "Samoa", emoji: "🇼🇸", code: "WS" },
+  { name: "San Cristóbal y Nieves", emoji: "🇰🇳", code: "KN" },
+  { name: "San Marino", emoji: "🇸🇲", code: "SM" },
+  { name: "San Vicente y las Granadinas", emoji: "🇻🇨", code: "VC" },
+  { name: "Santa Lucía", emoji: "🇱🇨", code: "LC" },
+  { name: "Santo Tomé y Príncipe", emoji: "🇸🇹", code: "ST" },
+  { name: "Senegal", emoji: "🇸🇳", code: "SN" },
+  { name: "Serbia", emoji: "🇷🇸", code: "RS" },
+  { name: "Seychelles", emoji: "🇸🇨", code: "SC" },
+  { name: "Sierra Leona", emoji: "🇸🇱", code: "SL" },
+  { name: "Singapur", emoji: "🇸🇬", code: "SG" },
+  { name: "Siria", emoji: "🇸🇾", code: "SY" },
+  { name: "Somalia", emoji: "🇸🇴", code: "SO" },
+  { name: "Sri Lanka", emoji: "🇱🇰", code: "LK" },
+  { name: "Sudáfrica", emoji: "🇿🇦", code: "ZA" },
+  { name: "Sudán", emoji: "🇸🇩", code: "SD" },
+  { name: "Sudán del Sur", emoji: "🇸🇸", code: "SS" },
+  { name: "Suecia", emoji: "🇸🇪", code: "SE" },
+  { name: "Suiza", emoji: "🇨🇭", code: "CH" },
+  { name: "Surinam", emoji: "🇸🇷", code: "SR" },
+  { name: "Tailandia", emoji: "🇹🇭", code: "TH" },
+  { name: "Tanzania", emoji: "🇹🇿", code: "TZ" },
+  { name: "Tayikistán", emoji: "🇹🇯", code: "TJ" },
+  { name: "Timor Oriental", emoji: "🇹🇱", code: "TL" },
+  { name: "Togo", emoji: "🇹🇬", code: "TG" },
+  { name: "Tonga", emoji: "🇹🇴", code: "TO" },
+  { name: "Trinidad y Tobago", emoji: "🇹🇹", code: "TT" },
+  { name: "Túnez", emoji: "🇹🇳", code: "TN" },
+  { name: "Turkmenistán", emoji: "🇹🇲", code: "TM" },
+  { name: "Turquía", emoji: "🇹🇷", code: "TR" },
+  { name: "Tuvalu", emoji: "🇹🇻", code: "TV" },
+  { name: "Ucrania", emoji: "🇺🇦", code: "UA" },
+  { name: "Uganda", emoji: "🇺🇬", code: "UG" },
+  { name: "Uruguay", emoji: "🇺🇾", code: "UY" },
+  { name: "Uzbekistán", emoji: "🇺🇿", code: "UZ" },
+  { name: "Vanuatu", emoji: "🇻🇺", code: "VU" },
+  { name: "Venezuela", emoji: "🇻🇪", code: "VE" },
+  { name: "Vietnam", emoji: "🇻🇳", code: "VN" },
+  { name: "Yemen", emoji: "🇾🇪", code: "YE" },
+  { name: "Yibuti", emoji: "🇩🇯", code: "DJ" },
+  { name: "Zambia", emoji: "🇿🇲", code: "ZM" },
+  { name: "Zimbabue", emoji: "🇿🇼", code: "ZW" },
+];
+
+const TIMER_MAX = 5;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getPoints(elapsed) {
+  if (elapsed <= 1) return 5;
+  if (elapsed <= 2) return 4;
+  if (elapsed <= 3) return 3;
+  if (elapsed <= 4) return 2;
+  return 1;
+}
+
+function buildRound(pool, idx) {
+  const correct = pool[idx];
+  const others = shuffle(pool.filter((_, i) => i !== idx));
+  return { correct, options: shuffle([correct, others[0], others[1]]) };
+}
+
+const bg = "#060e1c", surface = "#0d1f36", accent = "#22d3ee", gold = "#f59e0b", red = "#ef4444", green = "#22c55e";
+
+function TimerArc({ timeLeft }) {
+  const pct = timeLeft / TIMER_MAX;
+  const r = 26, circ = 2 * Math.PI * r;
+  const color = pct > 0.6 ? accent : pct > 0.3 ? gold : red;
+  return React.createElement('svg', { width: 68, height: 68, viewBox: "0 0 68 68" },
+    React.createElement('circle', { cx: 34, cy: 34, r, fill: "none", stroke: "#1e293b", strokeWidth: 5 }),
+    React.createElement('circle', { cx: 34, cy: 34, r, fill: "none", stroke: color, strokeWidth: 5,
+      strokeDasharray: `${circ * pct} ${circ}`, strokeLinecap: "round",
+      transform: "rotate(-90 34 34)", style: { transition: "stroke-dasharray 0.08s linear, stroke 0.3s" }
+    }),
+    React.createElement('text', { x: 34, y: 39, textAnchor: "middle", fill: color, fontSize: 17, fontWeight: "bold", fontFamily: "monospace" },
+      Math.ceil(timeLeft)
+    )
+  );
+}
+
+function FlagGame() {
+  const [phase, setPhase] = useState("start");
+  const [pool, setPool] = useState([]);
+  const [qIndex, setQIndex] = useState(0);
+  const [round, setRound] = useState(null);
+  const [score, setScore] = useState(0);
+  const [question, setQuestion] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(TIMER_MAX);
+  const [selected, setSelected] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const [pointsEarned, setPointsEarned] = useState(0);
+  const [history, setHistory] = useState([]);
+  const timerRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const lockedRef = useRef(false);
+  const pendingRef = useRef(null);
+  const readyRef = useRef(null);
+
+  const goToNextQuestion = (newPool, newQIndex, newScore, newQuestion, newHistory) => {
+    if (newQIndex >= newPool.length) { setPhase("gameover"); return; }
+    pendingRef.current = { newPool, newQIndex, newScore, newQuestion, newHistory };
+    setScore(newScore);
+    setHistory(newHistory);
+    setSelected(null);
+    setFeedback(null);
+    setPhase("ready");
+  };
+
+  useEffect(() => {
+    if (phase !== "ready") { clearTimeout(readyRef.current); return; }
+    readyRef.current = setTimeout(() => {
+      const { newPool, newQIndex, newScore, newQuestion, newHistory } = pendingRef.current;
+      setQIndex(newQIndex);
+      setQuestion(newQuestion);
+      setRound(buildRound(newPool, newQIndex));
+      setScore(newScore);
+      setHistory(newHistory);
+      lockedRef.current = false;
+      setTimeLeft(TIMER_MAX);
+      setPhase("playing");
+    }, 1000);
+    return () => clearTimeout(readyRef.current);
+  }, [phase]);
+
+  const startGame = () => {
+    const shuffled = shuffle(COUNTRIES);
+    setPool(shuffled);
+    setScore(0); setQuestion(1); setQIndex(0); setHistory([]);
+    setRound(buildRound(shuffled, 0));
+    setSelected(null); setFeedback(null);
+    lockedRef.current = false;
+    setPhase("playing");
+  };
+
+  useEffect(() => {
+    if (phase !== "playing") { clearInterval(timerRef.current); return; }
+    lockedRef.current = false;
+    startTimeRef.current = Date.now();
+    setTimeLeft(TIMER_MAX);
+    timerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const remaining = Math.max(0, TIMER_MAX - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0 && !lockedRef.current) {
+        lockedRef.current = true;
+        clearInterval(timerRef.current);
+        setFeedback("timeout");
+        setTimeout(() => setPhase("gameover"), 1000);
+      }
+    }, 50);
+    return () => clearInterval(timerRef.current);
+  }, [phase, qIndex]);
+
+  const handleSelect = (idx) => {
+    if (lockedRef.current || feedback) return;
+    lockedRef.current = true;
+    clearInterval(timerRef.current);
+    const elapsed = (Date.now() - startTimeRef.current) / 1000;
+    const isCorrect = round.options[idx].code === round.correct.code;
+    setSelected(idx);
+    if (isCorrect) {
+      const pts = getPoints(elapsed);
+      const newScore = score + pts;
+      const newHistory = [...history, { name: round.correct.name, emoji: round.correct.emoji, result: "✓", pts }];
+      setPointsEarned(pts);
+      setFeedback("correct");
+      setTimeout(() => goToNextQuestion(pool, qIndex + 1, newScore, question + 1, newHistory), 700);
+    } else {
+      const newHistory = [...history, { name: round.correct.name, emoji: round.correct.emoji, result: "✗", pts: 0 }];
+      setHistory(newHistory);
+      setFeedback("wrong");
+      setTimeout(() => setPhase("gameover"), 900);
+    }
+  };
+
+  const e = React.createElement;
+  const font = "'Segoe UI', system-ui, sans-serif";
+  const center = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" };
+
+  if (phase === "start") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
+    e('div', { style: { fontSize: 72, marginBottom: 12, lineHeight: 1 } }, "🌍"),
+    e('h1', { style: { color: accent, fontSize: 34, fontWeight: 900, letterSpacing: "-1px", marginBottom: 6, textAlign: "center" } }, "FLAG RUSH"),
+    e('p', { style: { color: "#475569", fontSize: 13, marginBottom: 32, textAlign: "center" } }, `${COUNTRIES.length} países · 3 banderas · 5 segundos`),
+    e('div', { style: { background: surface, borderRadius: 16, padding: "18px 26px", marginBottom: 32, width: "100%", maxWidth: 300 } },
+      ...[["⚡ 1 seg","5 pts"],["🔥 2 seg","4 pts"],["✅ 3 seg","3 pts"],["⏳ 4 seg","2 pts"],["🐢 5 seg","1 pt"]].map(([l,p]) =>
+        e('div', { key: l, style: { display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #1e3a5f", color: "#64748b", fontSize: 14 } },
+          e('span', null, l), e('span', { style: { color: gold, fontWeight: 700 } }, p)
+        )
+      ),
+      e('div', { style: { marginTop: 10, color: red, fontSize: 12, textAlign: "center" } }, "❌ Error o tiempo = Game Over")
+    ),
+    e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "14px 52px", fontSize: 18, fontWeight: 900, cursor: "pointer" } }, "JUGAR")
+  );
+
+  if (phase === "ready") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font } },
+    e('div', { style: { color: green, fontSize: 80, fontWeight: 900, lineHeight: 1 } }, "✓"),
+    e('div', { style: { color: accent, fontSize: 26, fontWeight: 800, marginTop: 14 } }, `+${pointsEarned} pts`),
+    e('div', { style: { color: "#334155", fontSize: 14, marginTop: 10 } }, "siguiente en un momento…")
+  );
+
+  if (phase === "gameover") {
+    const rank = score >= 150 ? "🏆 Leyenda" : score >= 80 ? "🥇 Experto" : score >= 40 ? "🥈 Viajero" : "🥉 Principiante";
+    return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
+      e('div', { style: { fontSize: 56, marginBottom: 6 } }, rank.split(" ")[0]),
+      e('h2', { style: { color: "#f1f5f9", fontSize: 24, fontWeight: 800, marginBottom: 4 } }, "Game Over"),
+      e('div', { style: { color: gold, fontSize: 52, fontWeight: 900, lineHeight: 1, marginBottom: 4 } }, score),
+      e('div', { style: { color: "#475569", fontSize: 13, marginBottom: 10 } }, `${rank.split(" ").slice(1).join(" ")} · ${history.filter(h => h.result === "✓").length} acertadas`),
+      round && feedback !== "correct" && e('div', { style: { color: "#64748b", fontSize: 13, marginBottom: 20, textAlign: "center" } },
+        "Era ", e('strong', { style: { color: "#f1f5f9" } }, round.correct.name), " ", round.correct.emoji
+      ),
+      history.length > 0 && e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 200, overflowY: "auto", marginBottom: 24 } },
+        ...[...history].reverse().map((h, i) =>
+          e('div', { key: i, style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #1e3a5f", fontSize: 13 } },
+            e('span', { style: { fontSize: 18 } }, h.emoji),
+            e('span', { style: { color: "#94a3b8", flex: 1, fontSize: 12 } }, h.name),
+            e('span', { style: { color: h.result === "✓" ? green : red, fontWeight: 700 } }, h.result),
+            e('span', { style: { color: gold, fontWeight: 700, minWidth: 28, textAlign: "right", fontSize: 12 } }, h.pts > 0 ? `+${h.pts}` : "")
+          )
+        )
+      ),
+      e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "13px 44px", fontSize: 16, fontWeight: 900, cursor: "pointer" } }, "VOLVER A JUGAR")
+    );
+  }
+
+  if (!round) return null;
+
+  const flashBg = feedback === "correct" ? "rgba(34,197,94,0.12)" : feedback ? "rgba(239,68,68,0.12)" : bg;
+
+  return e('div', { style: { background: flashBg, minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", fontFamily: font, padding: "env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 28px)", userSelect: "none", transition: "background 0.2s" } },
+    // Header
+    e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, paddingTop: 8 } },
+      e('div', null,
+        e('div', { style: { color: "#334155", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" } }, "Pregunta"),
+        e('div', { style: { color: "#f1f5f9", fontSize: 22, fontWeight: 900 } }, `#${question}`)
+      ),
+      e(TimerArc, { timeLeft }),
+      e('div', { style: { textAlign: "right" } },
+        e('div', { style: { color: "#334155", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" } }, "Puntos"),
+        e('div', { style: { color: gold, fontSize: 22, fontWeight: 900 } }, score)
+      )
+    ),
+    // Country name
+    e('div', { style: { textAlign: "center", padding: "0 16px" } },
+      e('div', { style: { color: "#475569", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6 } }, "¿Cuál es la bandera de…?"),
+      e('div', { style: { color: "#f1f5f9", fontSize: 38, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1.2 } }, round.correct.name)
+    ),
+    // Feedback pill
+    e('div', { style: { height: 36, display: "flex", alignItems: "center", justifyContent: "center" } },
+      feedback === "correct" && e('div', { style: { background: "#14532d", color: green, borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800 } }, `+${pointsEarned} pts ✓`),
+      feedback === "wrong" && e('div', { style: { background: "#7f1d1d", color: red, borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800 } }, "✗ Incorrecto"),
+      feedback === "timeout" && e('div', { style: { background: "#1e1b4b", color: "#818cf8", borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800 } }, "⏱ Tiempo agotado")
+    ),
+    // Flags
+    e('div', { style: { display: "flex", flexDirection: "column", gap: 8, alignItems: "center", width: "100%" } },
+      ...round.options.map((opt, idx) => {
+        const isSelected = idx === selected;
+        const isCorrectOpt = opt.code === round.correct.code;
+        let ring = "none";
+        if (feedback && isCorrectOpt) ring = `0 0 0 5px ${green}`;
+        else if (feedback && isSelected && !isCorrectOpt) ring = `0 0 0 5px ${red}`;
+        return e('button', {
+          key: opt.code,
+          onClick: () => handleSelect(idx),
+          style: { background: "none", border: "none", padding: "4px 0", cursor: feedback ? "default" : "pointer", borderRadius: 16, boxShadow: ring, transition: "box-shadow 0.15s, transform 0.1s", transform: isSelected && feedback ? "scale(1.06)" : "scale(1)", outline: "none", lineHeight: 1, fontSize: "clamp(96px, 28vw, 140px)" }
+        }, opt.emoji);
+      })
+    ),
+    e('div', { style: { height: 8 } })
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(FlagGame));
+
+// Service Worker para offline
+if ('serviceWorker' in navigator) {
+  const sw = `
+    const CACHE = 'flagrush-v1';
+    const URLS = [location.href];
+    self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS))));
+    self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+  `;
+  const blob = new Blob([sw], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob));
+}
+</script>
+</body>
+</html>
