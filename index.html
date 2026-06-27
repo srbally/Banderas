@@ -280,6 +280,37 @@ function addScoreToRanking(score, name) {
   return { list, entry };
 }
 
+const RANKING_API = '/api/ranking';
+
+async function fetchRanking() {
+  try {
+    const res = await fetch(RANKING_API);
+    if (!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    if (!Array.isArray(data.list)) throw new Error('bad payload');
+    return { list: data.list, online: true };
+  } catch {
+    return { list: loadRanking(), online: false };
+  }
+}
+
+async function submitScore(score, name) {
+  try {
+    const res = await fetch(RANKING_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ score, name })
+    });
+    if (!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    if (!data.entry) throw new Error('bad payload');
+    return { entry: data.entry, online: true };
+  } catch {
+    const { entry } = addScoreToRanking(score, name);
+    return { entry, online: false };
+  }
+}
+
 function RankingPanel({ list, currentEntryId }) {
   const e = React.createElement;
   if (list.length === 0) {
@@ -356,10 +387,26 @@ function FlagGame() {
   const readyRef = useRef(null);
 
   useEffect(() => {
+    fetchRanking().then(({ list }) => setRanking(list));
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "ranking") return;
+    fetchRanking().then(({ list }) => setRanking(list));
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== "gameover") return;
-    const { list, entry } = addScoreToRanking(score, playerName);
-    setRanking(list);
-    setLastEntryId(entry.id);
+    let cancelled = false;
+    (async () => {
+      const { entry } = await submitScore(score, playerName);
+      if (cancelled) return;
+      setLastEntryId(entry.id);
+      const { list } = await fetchRanking();
+      if (cancelled) return;
+      setRanking(list);
+    })();
+    return () => { cancelled = true; };
   }, [phase]);
 
   const goToNextQuestion = (newPool, newQIndex, newScore, newQuestion, newHistory) => {
