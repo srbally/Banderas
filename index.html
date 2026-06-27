@@ -243,7 +243,33 @@ function buildRound(pool, idx) {
   return { correct, options: shuffle([correct, others[0], others[1]]) };
 }
 
-const bg = "#060e1c", surface = "#0d1f36", accent = "#22d3ee", gold = "#f59e0b", red = "#ef4444", green = "#22c55e";
+const FONT = "'Segoe UI', system-ui, sans-serif";
+const LABEL = { fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" };
+
+const THEMES = {
+  dark: {
+    bg: "#060e1c", surface: "#0d1f36", text: "#f1f5f9", dim: "#94a3b8", faint: "#475569",
+    border: "#1e3a5f", accent: "#22d3ee", accentText: "#060e1c", gold: "#f59e0b", red: "#ef4444", green: "#22c55e"
+  },
+  light: {
+    bg: "#eef2f7", surface: "#ffffff", text: "#0f172a", dim: "#475569", faint: "#64748b",
+    border: "#cbd5e1", accent: "#0891b2", accentText: "#ffffff", gold: "#b45309", red: "#dc2626", green: "#15803d"
+  }
+};
+
+const THEME_KEY = "flagrush-theme";
+
+function loadTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function saveTheme(mode) {
+  try { localStorage.setItem(THEME_KEY, mode); } catch {}
+}
 
 const RANKING_KEY = "flagrush-ranking";
 
@@ -311,10 +337,10 @@ async function submitScore(score, name) {
   }
 }
 
-function RankingPanel({ list, currentEntryId }) {
+function RankingPanel({ list, currentEntryId, theme }) {
   const e = React.createElement;
   if (list.length === 0) {
-    return e('div', { style: { color: "#475569", fontSize: 13, textAlign: "center" } }, "Todavía no hay partidas registradas.");
+    return e('div', { style: { color: theme.faint, fontSize: 15, textAlign: "center", fontFamily: FONT } }, "Todavía no hay partidas registradas.");
   }
   const top10 = list.slice(0, 10);
   const currentIndex = currentEntryId ? list.findIndex(en => en.id === currentEntryId) : -1;
@@ -323,13 +349,13 @@ function RankingPanel({ list, currentEntryId }) {
   const row = (en, position) => e('div', {
     key: en.id,
     style: {
-      display: "flex", alignItems: "center", gap: 10, padding: "6px 0",
-      borderBottom: "1px solid #1e3a5f", fontSize: 14,
-      color: en.id === currentEntryId ? accent : "#94a3b8",
+      display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
+      borderBottom: `1px solid ${theme.border}`, fontSize: 16, fontFamily: FONT,
+      color: en.id === currentEntryId ? theme.accent : theme.dim,
       fontWeight: en.id === currentEntryId ? 800 : 400
     }
   },
-    e('span', { style: { minWidth: 26, color: position <= 3 ? gold : "#475569", fontWeight: 700 } }, `#${position}`),
+    e('span', { style: { minWidth: 30, color: position <= 3 ? theme.gold : theme.faint, fontWeight: 700 } }, `#${position}`),
     e('span', { style: { flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, en.name || "Anónimo"),
     e('span', { style: { fontWeight: 700 } }, `${en.score} pts`)
   );
@@ -337,23 +363,23 @@ function RankingPanel({ list, currentEntryId }) {
     ...top10.map((en, i) => row(en, i + 1)),
     showBelow && e('div', {
       style: {
-        display: "flex", alignItems: "center", gap: 10, padding: "8px 0 2px", marginTop: 4,
-        borderTop: "1px dashed #1e3a5f", fontSize: 14, color: accent, fontWeight: 800
+        display: "flex", alignItems: "center", gap: 10, padding: "10px 0 2px", marginTop: 4, fontFamily: FONT,
+        borderTop: `1px dashed ${theme.border}`, fontSize: 16, color: theme.accent, fontWeight: 800
       }
     },
-      e('span', { style: { minWidth: 26 } }, `#${currentPosition}`),
+      e('span', { style: { minWidth: 30 } }, `#${currentPosition}`),
       e('span', { style: { flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, list[currentIndex].name || "Anónimo"),
       e('span', { style: { fontWeight: 700 } }, `${list[currentIndex].score} pts`)
     )
   );
 }
 
-function TimerArc({ timeLeft }) {
+function TimerArc({ timeLeft, theme }) {
   const pct = timeLeft / TIMER_MAX;
   const r = 26, circ = 2 * Math.PI * r;
-  const color = pct > 0.6 ? accent : pct > 0.3 ? gold : red;
+  const color = pct > 0.6 ? theme.accent : pct > 0.3 ? theme.gold : theme.red;
   return React.createElement('svg', { width: 68, height: 68, viewBox: "0 0 68 68" },
-    React.createElement('circle', { cx: 34, cy: 34, r, fill: "none", stroke: "#1e293b", strokeWidth: 5 }),
+    React.createElement('circle', { cx: 34, cy: 34, r, fill: "none", stroke: theme.border, strokeWidth: 5 }),
     React.createElement('circle', { cx: 34, cy: 34, r, fill: "none", stroke: color, strokeWidth: 5,
       strokeDasharray: `${circ * pct} ${circ}`, strokeLinecap: "round",
       transform: "rotate(-90 34 34)", style: { transition: "stroke-dasharray 0.08s linear, stroke 0.3s" }
@@ -361,6 +387,21 @@ function TimerArc({ timeLeft }) {
     React.createElement('text', { x: 34, y: 39, textAnchor: "middle", fill: color, fontSize: 17, fontWeight: "bold", fontFamily: "monospace" },
       Math.ceil(timeLeft)
     )
+  );
+}
+
+function ThemeToggle({ themeMode, onToggle, theme }) {
+  const e = React.createElement;
+  const isLight = themeMode === "light";
+  return e('div', {
+    onClick: onToggle,
+    style: { marginTop: 22, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }
+  },
+    e('span', { style: { fontSize: 15 } }, "🌙"),
+    e('div', { style: { width: 46, height: 26, borderRadius: 13, background: theme.border, position: "relative", transition: "background 0.2s" } },
+      e('div', { style: { width: 20, height: 20, borderRadius: "50%", background: theme.accent, position: "absolute", top: 3, left: isLight ? 23 : 3, transition: "left 0.2s" } })
+    ),
+    e('span', { style: { fontSize: 15 } }, "☀️")
   );
 }
 
@@ -380,11 +421,24 @@ function FlagGame() {
   const [lastEntryId, setLastEntryId] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [playerName, setPlayerName] = useState(() => loadPlayerName());
+  const [themeMode, setThemeMode] = useState(() => loadTheme());
+  const theme = THEMES[themeMode];
+  const toggleTheme = () => setThemeMode(m => {
+    const next = m === "light" ? "dark" : "light";
+    saveTheme(next);
+    return next;
+  });
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const lockedRef = useRef(false);
   const pendingRef = useRef(null);
   const readyRef = useRef(null);
+
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme.bg);
+    document.body.style.background = theme.bg;
+  }, [themeMode]);
 
   useEffect(() => {
     fetchRanking().then(({ list }) => setRanking(list));
@@ -509,17 +563,17 @@ function FlagGame() {
   };
 
   const e = React.createElement;
-  const font = "'Segoe UI', system-ui, sans-serif";
   const center = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" };
+  const rowBtn = { background: theme.accent, color: theme.accentText, border: "none", borderRadius: 12, padding: "16px 0", fontSize: 17, fontWeight: 900, cursor: "pointer", flex: 1, fontFamily: FONT };
 
-  if (phase === "start") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
+  if (phase === "start") return e('div', { style: { ...center, background: theme.bg, minHeight: "100dvh", fontFamily: FONT, padding: "24px" } },
     e('button', {
       onClick: handleUpdate,
       disabled: updating,
       title: "Buscar la última versión",
       style: {
-        position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 56px)", right: 14, background: "none", border: "1px solid #1e3a5f",
-        color: "#64748b", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 700,
+        position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 56px)", right: 14, background: "none", border: `1px solid ${theme.border}`,
+        color: theme.dim, borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 700, fontFamily: FONT,
         display: "flex", alignItems: "center", gap: 6, cursor: updating ? "default" : "pointer"
       }
     },
@@ -528,15 +582,15 @@ function FlagGame() {
     ),
     e('style', null, "@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }"),
     e('div', { style: { fontSize: 72, marginBottom: 12, lineHeight: 1 } }, "🌍"),
-    e('h1', { style: { color: accent, fontSize: 34, fontWeight: 900, letterSpacing: "-1px", marginBottom: 6, textAlign: "center" } }, "FLAG RUSH"),
-    e('p', { style: { color: "#475569", fontSize: 13, marginBottom: 32, textAlign: "center" } }, `${COUNTRIES.length} países · 3 banderas · 5 segundos`),
-    e('div', { style: { background: surface, borderRadius: 16, padding: "18px 26px", marginBottom: 32, width: "100%", maxWidth: 300 } },
+    e('h1', { style: { color: theme.accent, fontSize: 34, fontWeight: 900, letterSpacing: "-1px", marginBottom: 6, textAlign: "center" } }, "FLAG RUSH"),
+    e('p', { style: { color: theme.faint, fontSize: 13, marginBottom: 32, textAlign: "center" } }, `${COUNTRIES.length} países · 3 banderas · 5 segundos`),
+    e('div', { style: { background: theme.surface, borderRadius: 16, padding: "18px 26px", marginBottom: 32, width: "100%", maxWidth: 300 } },
       ...[["⚡ 1 seg","5 pts"],["🔥 2 seg","4 pts"],["✅ 3 seg","3 pts"],["⏳ 4 seg","2 pts"],["🐢 5 seg","1 pt"]].map(([l,p]) =>
-        e('div', { key: l, style: { display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #1e3a5f", color: "#64748b", fontSize: 14 } },
-          e('span', null, l), e('span', { style: { color: gold, fontWeight: 700 } }, p)
+        e('div', { key: l, style: { display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${theme.border}`, color: theme.dim, fontSize: 14 } },
+          e('span', null, l), e('span', { style: { color: theme.gold, fontWeight: 700 } }, p)
         )
       ),
-      e('div', { style: { marginTop: 10, color: red, fontSize: 12, textAlign: "center" } }, "❌ Error o tiempo = Game Over")
+      e('div', { style: { marginTop: 10, color: theme.red, fontSize: 12, textAlign: "center" } }, "❌ Error o tiempo = Game Over")
     ),
     e('input', {
       type: "text",
@@ -546,89 +600,94 @@ function FlagGame() {
         setPlayerName(v);
         savePlayerName(v);
       },
-      placeholder: "Tu nombre",
+      placeholder: "Nombre",
       maxLength: 20,
       style: {
-        background: surface, border: "1px solid #1e3a5f", color: "#f1f5f9", borderRadius: 12,
+        background: theme.surface, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: 12,
         padding: "12px 18px", fontSize: 15, marginBottom: 18, width: "100%", maxWidth: 300,
-        textAlign: "center", outline: "none", fontFamily: font
+        textAlign: "center", outline: "none", fontFamily: FONT
       }
     }),
-    e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "14px 52px", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 14 } }, "JUGAR"),
-    e('button', { onClick: () => setPhase("ranking"), style: { background: "none", color: accent, border: `1px solid ${accent}`, borderRadius: 12, padding: "10px 36px", fontSize: 14, fontWeight: 800, cursor: "pointer" } }, "VER RANKING")
-  );
-
-  if (phase === "ranking") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
-    e('div', { style: { fontSize: 48, marginBottom: 6 } }, "🏆"),
-    e('h2', { style: { color: "#f1f5f9", fontSize: 22, fontWeight: 800, marginBottom: 18 } }, "Ranking"),
-    e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 320, overflowY: "auto", marginBottom: 24 } },
-      e(RankingPanel, { list: ranking, currentEntryId: null })
+    e('div', { style: { display: "flex", gap: 12, width: "100%", maxWidth: 300 } },
+      e('button', { onClick: startGame, style: rowBtn }, "Jugar"),
+      e('button', { onClick: () => setPhase("ranking"), style: rowBtn }, "Ranking")
     ),
-    e('button', { onClick: () => setPhase("start"), style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "13px 44px", fontSize: 16, fontWeight: 900, cursor: "pointer" } }, "VOLVER")
+    e(ThemeToggle, { themeMode, onToggle: toggleTheme, theme })
   );
 
-  if (phase === "ready") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font } },
-    e('div', { style: { color: green, fontSize: 80, fontWeight: 900, lineHeight: 1 } }, "✓"),
-    e('div', { style: { color: accent, fontSize: 26, fontWeight: 800, marginTop: 14 } }, `+${pointsEarned} pts`),
-    e('div', { style: { color: "#334155", fontSize: 14, marginTop: 10 } }, "siguiente en un momento…")
+  if (phase === "ranking") return e('div', { style: { ...center, background: theme.bg, minHeight: "100dvh", fontFamily: FONT, padding: "24px" } },
+    e('div', { style: { fontSize: 48, marginBottom: 6 } }, "🏆"),
+    e('h2', { style: { color: theme.text, fontSize: 22, fontWeight: 800, marginBottom: 18 } }, "Ranking"),
+    e('div', { style: { background: theme.surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 320, overflowY: "auto", marginBottom: 24 } },
+      e(RankingPanel, { list: ranking, currentEntryId: null, theme })
+    ),
+    e('button', { onClick: () => setPhase("start"), style: { background: theme.accent, color: theme.accentText, border: "none", borderRadius: 12, padding: "13px 44px", fontSize: 16, fontWeight: 900, cursor: "pointer", fontFamily: FONT } }, "VOLVER")
+  );
+
+  if (phase === "ready") return e('div', { style: { ...center, background: theme.bg, minHeight: "100dvh", fontFamily: FONT } },
+    e('div', { style: { color: theme.green, fontSize: 80, fontWeight: 900, lineHeight: 1 } }, "✓"),
+    e('div', { style: { color: theme.accent, fontSize: 26, fontWeight: 800, marginTop: 14 } }, `+${pointsEarned} pts`),
+    e('div', { style: { color: theme.faint, fontSize: 14, marginTop: 10 } }, "siguiente en un momento…")
   );
 
   if (phase === "gameover") {
     const rank = score >= 150 ? "🏆 Leyenda" : score >= 80 ? "🥇 Experto" : score >= 40 ? "🥈 Viajero" : "🥉 Principiante";
-    return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
+    return e('div', { style: { ...center, background: theme.bg, minHeight: "100dvh", fontFamily: FONT, padding: "24px" } },
       e('div', { style: { fontSize: 56, marginBottom: 6 } }, rank.split(" ")[0]),
-      e('h2', { style: { color: "#f1f5f9", fontSize: 24, fontWeight: 800, marginBottom: 4 } }, "Game Over"),
-      e('div', { style: { color: gold, fontSize: 52, fontWeight: 900, lineHeight: 1, marginBottom: 4 } }, score),
-      e('div', { style: { color: "#475569", fontSize: 13, marginBottom: 10 } }, `${rank.split(" ").slice(1).join(" ")} · ${history.filter(h => h.result === "✓").length} acertadas`),
-      round && feedback !== "correct" && e('div', { style: { color: "#64748b", fontSize: 13, marginBottom: 20, textAlign: "center" } },
-        "Era ", e('strong', { style: { color: "#f1f5f9" } }, round.correct.name), " ", round.correct.emoji
+      e('h2', { style: { color: theme.text, fontSize: 24, fontWeight: 800, marginBottom: 4 } }, "Game Over"),
+      e('div', { style: { color: theme.gold, fontSize: 52, fontWeight: 900, lineHeight: 1, marginBottom: 4 } }, score),
+      e('div', { style: { color: theme.faint, fontSize: 13, marginBottom: 10 } }, `${rank.split(" ").slice(1).join(" ")} · ${history.filter(h => h.result === "✓").length} acertadas`),
+      round && feedback !== "correct" && e('div', { style: { color: theme.dim, fontSize: 13, marginBottom: 20, textAlign: "center" } },
+        "Era ", e('strong', { style: { color: theme.text } }, round.correct.name), " ", round.correct.emoji
       ),
-      e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 220, overflowY: "auto", marginBottom: 12 } },
-        e('div', { style: { color: "#475569", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, textAlign: "center" } }, "Ranking"),
-        e(RankingPanel, { list: ranking, currentEntryId: lastEntryId })
+      e('div', { style: { background: theme.surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 220, overflowY: "auto", marginBottom: 16 } },
+        e('div', { style: { ...LABEL, color: theme.faint, marginBottom: 8, textAlign: "center" } }, "Ranking"),
+        e(RankingPanel, { list: ranking, currentEntryId: lastEntryId, theme })
       ),
-      e('button', { onClick: () => setPhase("start"), style: { background: "none", color: accent, border: `1px solid ${accent}`, borderRadius: 10, padding: "8px 28px", fontSize: 13, fontWeight: 800, cursor: "pointer", marginBottom: 16 } }, "IR A INICIO"),
-      history.length > 0 && e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 200, overflowY: "auto", marginBottom: 24 } },
+      history.length > 0 && e('div', { style: { background: theme.surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 200, overflowY: "auto", marginBottom: 24 } },
         ...[...history].reverse().map((h, i) =>
-          e('div', { key: i, style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #1e3a5f", fontSize: 13 } },
+          e('div', { key: i, style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: `1px solid ${theme.border}`, fontSize: 13 } },
             e('span', { style: { fontSize: 18 } }, h.emoji),
-            e('span', { style: { color: "#94a3b8", flex: 1, fontSize: 12 } }, h.name),
-            e('span', { style: { color: h.result === "✓" ? green : red, fontWeight: 700 } }, h.result),
-            e('span', { style: { color: gold, fontWeight: 700, minWidth: 28, textAlign: "right", fontSize: 12 } }, h.pts > 0 ? `+${h.pts}` : "")
+            e('span', { style: { color: theme.dim, flex: 1, fontSize: 12 } }, h.name),
+            e('span', { style: { color: h.result === "✓" ? theme.green : theme.red, fontWeight: 700 } }, h.result),
+            e('span', { style: { color: theme.gold, fontWeight: 700, minWidth: 28, textAlign: "right", fontSize: 12 } }, h.pts > 0 ? `+${h.pts}` : "")
           )
         )
       ),
-      e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "13px 44px", fontSize: 16, fontWeight: 900, cursor: "pointer" } }, "VOLVER A JUGAR")
+      e('div', { style: { display: "flex", gap: 12, width: "100%", maxWidth: 320 } },
+        e('button', { onClick: startGame, style: rowBtn }, "Jugar"),
+        e('button', { onClick: () => setPhase("start"), style: rowBtn }, "Inicio")
+      )
     );
   }
 
   if (!round) return null;
 
-  const flashBg = feedback === "correct" ? "rgba(34,197,94,0.12)" : feedback ? "rgba(239,68,68,0.12)" : bg;
+  const flashBg = feedback === "correct" ? "rgba(34,197,94,0.12)" : feedback ? "rgba(239,68,68,0.12)" : theme.bg;
 
-  return e('div', { style: { background: flashBg, minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", fontFamily: font, padding: "env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 28px)", userSelect: "none", transition: "background 0.2s" } },
+  return e('div', { style: { background: flashBg, minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", fontFamily: FONT, padding: "env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 28px)", userSelect: "none", transition: "background 0.2s" } },
     // Header
     e('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, paddingTop: 8 } },
       e('div', null,
-        e('div', { style: { color: "#334155", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" } }, "Pregunta"),
-        e('div', { style: { color: "#f1f5f9", fontSize: 22, fontWeight: 900 } }, `#${question}`)
+        e('div', { style: { ...LABEL, color: theme.dim } }, "Pregunta"),
+        e('div', { style: { color: theme.text, fontSize: 24, fontWeight: 900 } }, `#${question}`)
       ),
-      e(TimerArc, { timeLeft }),
+      e(TimerArc, { timeLeft, theme }),
       e('div', { style: { textAlign: "right" } },
-        e('div', { style: { color: "#334155", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" } }, "Puntos"),
-        e('div', { style: { color: gold, fontSize: 22, fontWeight: 900 } }, score)
+        e('div', { style: { ...LABEL, color: theme.dim } }, "Puntos"),
+        e('div', { style: { color: theme.gold, fontSize: 24, fontWeight: 900 } }, score)
       )
     ),
     // Country name
     e('div', { style: { textAlign: "center", padding: "0 16px" } },
-      e('div', { style: { color: "#475569", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6 } }, "¿Cuál es la bandera de…?"),
-      e('div', { style: { color: "#f1f5f9", fontSize: 38, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1.2 } }, round.correct.name)
+      e('div', { style: { ...LABEL, color: theme.faint, marginBottom: 8 } }, "¿Cuál es la bandera de…?"),
+      e('div', { style: { color: theme.text, fontSize: 38, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1.2 } }, round.correct.name)
     ),
     // Feedback pill
     e('div', { style: { height: 36, display: "flex", alignItems: "center", justifyContent: "center" } },
-      feedback === "correct" && e('div', { style: { background: "#14532d", color: green, borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800 } }, `+${pointsEarned} pts ✓`),
-      feedback === "wrong" && e('div', { style: { background: "#7f1d1d", color: red, borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800 } }, "✗ Incorrecto"),
-      feedback === "timeout" && e('div', { style: { background: "#1e1b4b", color: "#818cf8", borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800 } }, "⏱ Tiempo agotado")
+      feedback === "correct" && e('div', { style: { background: "#14532d", color: theme.green, borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800, fontFamily: FONT } }, `+${pointsEarned} pts ✓`),
+      feedback === "wrong" && e('div', { style: { background: "#7f1d1d", color: theme.red, borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800, fontFamily: FONT } }, "✗ Incorrecto"),
+      feedback === "timeout" && e('div', { style: { background: "#1e1b4b", color: "#818cf8", borderRadius: 20, padding: "6px 20px", fontSize: 16, fontWeight: 800, fontFamily: FONT } }, "⏱ Tiempo agotado")
     ),
     // Flags
     e('div', { style: { display: "flex", flexDirection: "column", gap: 8, alignItems: "center", width: "100%" } },
@@ -636,8 +695,8 @@ function FlagGame() {
         const isSelected = idx === selected;
         const isCorrectOpt = opt.code === round.correct.code;
         let ring = "none";
-        if (feedback && isCorrectOpt) ring = `0 0 0 5px ${green}`;
-        else if (feedback && isSelected && !isCorrectOpt) ring = `0 0 0 5px ${red}`;
+        if (feedback && isCorrectOpt) ring = `0 0 0 5px ${theme.green}`;
+        else if (feedback && isSelected && !isCorrectOpt) ring = `0 0 0 5px ${theme.red}`;
         return e('button', {
           key: opt.code,
           onClick: () => handleSelect(idx),
