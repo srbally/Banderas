@@ -25,7 +25,7 @@
 const { useState, useEffect, useRef } = React;
 
 const COUNTRIES = [
-  { name: "Afghanistan", emoji: "🇦🇫", code: "AF" },
+  { name: "Afganistán", emoji: "🇦🇫", code: "AF" },
   { name: "Albania", emoji: "🇦🇱", code: "AL" },
   { name: "Alemania", emoji: "🇩🇪", code: "DE" },
   { name: "Andorra", emoji: "🇦🇩", code: "AD" },
@@ -169,7 +169,7 @@ const COUNTRIES = [
   { name: "Portugal", emoji: "🇵🇹", code: "PT" },
   { name: "Reino Unido", emoji: "🇬🇧", code: "GB" },
   { name: "República Centroafricana", emoji: "🇨🇫", code: "CF" },
-  { name: "Rep. Dem. del Congo", emoji: "🇨🇩", code: "CD" },
+  { name: "República Democrática del Congo", emoji: "🇨🇩", code: "CD" },
   { name: "República Dominicana", emoji: "🇩🇴", code: "DO" },
   { name: "Ruanda", emoji: "🇷🇼", code: "RW" },
   { name: "Rumania", emoji: "🇷🇴", code: "RO" },
@@ -280,7 +280,12 @@ function FlagGame() {
   const readyRef = useRef(null);
 
   const goToNextQuestion = (newPool, newQIndex, newScore, newQuestion, newHistory) => {
-    if (newQIndex >= newPool.length) { setPhase("gameover"); return; }
+    if (newQIndex >= newPool.length) {
+      setScore(newScore);
+      setHistory(newHistory);
+      setPhase("gameover");
+      return;
+    }
     pendingRef.current = { newPool, newQIndex, newScore, newQuestion, newHistory };
     setScore(newScore);
     setHistory(newHistory);
@@ -328,6 +333,7 @@ function FlagGame() {
         lockedRef.current = true;
         clearInterval(timerRef.current);
         setFeedback("timeout");
+        setHistory(h => [...h, { name: round.correct.name, emoji: round.correct.emoji, result: "✗", pts: 0 }]);
         setTimeout(() => setPhase("gameover"), 1000);
       }
     }, 50);
@@ -456,14 +462,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(
 
 // Service Worker para offline
 if ('serviceWorker' in navigator) {
-  const sw = `
-    const CACHE = 'flagrush-v1';
-    const URLS = [location.href];
-    self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS))));
-    self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
-  `;
-  const blob = new Blob([sw], { type: 'application/javascript' });
-  navigator.serviceWorker.register(URL.createObjectURL(blob));
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 </script>
 </body>
