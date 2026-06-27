@@ -1,4 +1,4 @@
-const CACHE = 'flagrush-v3';
+const CACHE = 'flagrush-v4';
 const URLS = [
   './',
   './index.html',
@@ -35,17 +35,5 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  if (new URL(e.request.url).pathname.startsWith('/api/')) {
-    e.respondWith(fetch(e.request));
-    return;
-  }
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        return res;
-      });
-    })
-  );
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
