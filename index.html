@@ -257,9 +257,23 @@ function loadRanking() {
   }
 }
 
-function addScoreToRanking(score) {
+const NAME_KEY = "flagrush-name";
+
+function loadPlayerName() {
+  try {
+    return localStorage.getItem(NAME_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function savePlayerName(name) {
+  try { localStorage.setItem(NAME_KEY, name); } catch {}
+}
+
+function addScoreToRanking(score, name) {
   const list = loadRanking();
-  const entry = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, score, ts: Date.now() };
+  const entry = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, score, name: (name || "").trim() || "Anónimo", ts: Date.now() };
   list.push(entry);
   list.sort((a, b) => b.score - a.score);
   try { localStorage.setItem(RANKING_KEY, JSON.stringify(list)); } catch {}
@@ -285,8 +299,8 @@ function RankingPanel({ list, currentEntryId }) {
     }
   },
     e('span', { style: { minWidth: 26, color: position <= 3 ? gold : "#475569", fontWeight: 700 } }, `#${position}`),
-    e('span', { style: { flex: 1 } }, `${en.score} pts`),
-    e('span', { style: { fontSize: 11, color: "#475569" } }, new Date(en.ts).toLocaleDateString())
+    e('span', { style: { flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, en.name || "Anónimo"),
+    e('span', { style: { fontWeight: 700 } }, `${en.score} pts`)
   );
   return e('div', null,
     ...top10.map((en, i) => row(en, i + 1)),
@@ -297,8 +311,8 @@ function RankingPanel({ list, currentEntryId }) {
       }
     },
       e('span', { style: { minWidth: 26 } }, `#${currentPosition}`),
-      e('span', { style: { flex: 1 } }, `${list[currentIndex].score} pts`),
-      e('span', { style: { fontSize: 11 } }, "tú")
+      e('span', { style: { flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, list[currentIndex].name || "Anónimo"),
+      e('span', { style: { fontWeight: 700 } }, `${list[currentIndex].score} pts`)
     )
   );
 }
@@ -334,6 +348,7 @@ function FlagGame() {
   const [ranking, setRanking] = useState(() => loadRanking());
   const [lastEntryId, setLastEntryId] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [playerName, setPlayerName] = useState(() => loadPlayerName());
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const lockedRef = useRef(false);
@@ -342,7 +357,7 @@ function FlagGame() {
 
   useEffect(() => {
     if (phase !== "gameover") return;
-    const { list, entry } = addScoreToRanking(score);
+    const { list, entry } = addScoreToRanking(score, playerName);
     setRanking(list);
     setLastEntryId(entry.id);
   }, [phase]);
@@ -476,6 +491,22 @@ function FlagGame() {
       ),
       e('div', { style: { marginTop: 10, color: red, fontSize: 12, textAlign: "center" } }, "❌ Error o tiempo = Game Over")
     ),
+    e('input', {
+      type: "text",
+      value: playerName,
+      onChange: ev => {
+        const v = ev.target.value.slice(0, 20);
+        setPlayerName(v);
+        savePlayerName(v);
+      },
+      placeholder: "Tu nombre",
+      maxLength: 20,
+      style: {
+        background: surface, border: "1px solid #1e3a5f", color: "#f1f5f9", borderRadius: 12,
+        padding: "12px 18px", fontSize: 15, marginBottom: 18, width: "100%", maxWidth: 300,
+        textAlign: "center", outline: "none", fontFamily: font
+      }
+    }),
     e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "14px 52px", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 14 } }, "JUGAR"),
     e('button', { onClick: () => setPhase("ranking"), style: { background: "none", color: accent, border: `1px solid ${accent}`, borderRadius: 12, padding: "10px 36px", fontSize: 14, fontWeight: 800, cursor: "pointer" } }, "VER RANKING")
   );
@@ -505,10 +536,11 @@ function FlagGame() {
       round && feedback !== "correct" && e('div', { style: { color: "#64748b", fontSize: 13, marginBottom: 20, textAlign: "center" } },
         "Era ", e('strong', { style: { color: "#f1f5f9" } }, round.correct.name), " ", round.correct.emoji
       ),
-      e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 220, overflowY: "auto", marginBottom: 16 } },
+      e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 220, overflowY: "auto", marginBottom: 12 } },
         e('div', { style: { color: "#475569", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, textAlign: "center" } }, "Ranking"),
         e(RankingPanel, { list: ranking, currentEntryId: lastEntryId })
       ),
+      e('button', { onClick: () => setPhase("start"), style: { background: "none", color: accent, border: `1px solid ${accent}`, borderRadius: 10, padding: "8px 28px", fontSize: 13, fontWeight: 800, cursor: "pointer", marginBottom: 16 } }, "IR A INICIO"),
       history.length > 0 && e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 200, overflowY: "auto", marginBottom: 24 } },
         ...[...history].reverse().map((h, i) =>
           e('div', { key: i, style: { display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #1e3a5f", fontSize: 13 } },
