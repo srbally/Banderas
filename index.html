@@ -245,6 +245,64 @@ function buildRound(pool, idx) {
 
 const bg = "#060e1c", surface = "#0d1f36", accent = "#22d3ee", gold = "#f59e0b", red = "#ef4444", green = "#22c55e";
 
+const RANKING_KEY = "flagrush-ranking";
+
+function loadRanking() {
+  try {
+    const raw = localStorage.getItem(RANKING_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function addScoreToRanking(score) {
+  const list = loadRanking();
+  const entry = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, score, ts: Date.now() };
+  list.push(entry);
+  list.sort((a, b) => b.score - a.score);
+  try { localStorage.setItem(RANKING_KEY, JSON.stringify(list)); } catch {}
+  return { list, entry };
+}
+
+function RankingPanel({ list, currentEntryId }) {
+  const e = React.createElement;
+  if (list.length === 0) {
+    return e('div', { style: { color: "#475569", fontSize: 13, textAlign: "center" } }, "Todavía no hay partidas registradas.");
+  }
+  const top10 = list.slice(0, 10);
+  const currentIndex = currentEntryId ? list.findIndex(en => en.id === currentEntryId) : -1;
+  const currentPosition = currentIndex >= 0 ? currentIndex + 1 : null;
+  const showBelow = currentPosition && currentPosition > 10;
+  const row = (en, position) => e('div', {
+    key: en.id,
+    style: {
+      display: "flex", alignItems: "center", gap: 10, padding: "6px 0",
+      borderBottom: "1px solid #1e3a5f", fontSize: 14,
+      color: en.id === currentEntryId ? accent : "#94a3b8",
+      fontWeight: en.id === currentEntryId ? 800 : 400
+    }
+  },
+    e('span', { style: { minWidth: 26, color: position <= 3 ? gold : "#475569", fontWeight: 700 } }, `#${position}`),
+    e('span', { style: { flex: 1 } }, `${en.score} pts`),
+    e('span', { style: { fontSize: 11, color: "#475569" } }, new Date(en.ts).toLocaleDateString())
+  );
+  return e('div', null,
+    ...top10.map((en, i) => row(en, i + 1)),
+    showBelow && e('div', {
+      style: {
+        display: "flex", alignItems: "center", gap: 10, padding: "8px 0 2px", marginTop: 4,
+        borderTop: "1px dashed #1e3a5f", fontSize: 14, color: accent, fontWeight: 800
+      }
+    },
+      e('span', { style: { minWidth: 26 } }, `#${currentPosition}`),
+      e('span', { style: { flex: 1 } }, `${list[currentIndex].score} pts`),
+      e('span', { style: { fontSize: 11 } }, "tú")
+    )
+  );
+}
+
 function TimerArc({ timeLeft }) {
   const pct = timeLeft / TIMER_MAX;
   const r = 26, circ = 2 * Math.PI * r;
@@ -273,11 +331,20 @@ function FlagGame() {
   const [feedback, setFeedback] = useState(null);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [history, setHistory] = useState([]);
+  const [ranking, setRanking] = useState(() => loadRanking());
+  const [lastEntryId, setLastEntryId] = useState(null);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const lockedRef = useRef(false);
   const pendingRef = useRef(null);
   const readyRef = useRef(null);
+
+  useEffect(() => {
+    if (phase !== "gameover") return;
+    const { list, entry } = addScoreToRanking(score);
+    setRanking(list);
+    setLastEntryId(entry.id);
+  }, [phase]);
 
   const goToNextQuestion = (newPool, newQIndex, newScore, newQuestion, newHistory) => {
     if (newQIndex >= newPool.length) {
@@ -315,7 +382,7 @@ function FlagGame() {
     setPool(shuffled);
     setScore(0); setQuestion(1); setQIndex(0); setHistory([]);
     setRound(buildRound(shuffled, 0));
-    setSelected(null); setFeedback(null);
+    setSelected(null); setFeedback(null); setLastEntryId(null);
     lockedRef.current = false;
     setPhase("playing");
   };
@@ -378,7 +445,17 @@ function FlagGame() {
       ),
       e('div', { style: { marginTop: 10, color: red, fontSize: 12, textAlign: "center" } }, "❌ Error o tiempo = Game Over")
     ),
-    e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "14px 52px", fontSize: 18, fontWeight: 900, cursor: "pointer" } }, "JUGAR")
+    e('button', { onClick: startGame, style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "14px 52px", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 14 } }, "JUGAR"),
+    e('button', { onClick: () => setPhase("ranking"), style: { background: "none", color: accent, border: `1px solid ${accent}`, borderRadius: 12, padding: "10px 36px", fontSize: 14, fontWeight: 800, cursor: "pointer" } }, "VER RANKING")
+  );
+
+  if (phase === "ranking") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
+    e('div', { style: { fontSize: 48, marginBottom: 6 } }, "🏆"),
+    e('h2', { style: { color: "#f1f5f9", fontSize: 22, fontWeight: 800, marginBottom: 18 } }, "Ranking"),
+    e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 320, overflowY: "auto", marginBottom: 24 } },
+      e(RankingPanel, { list: ranking, currentEntryId: null })
+    ),
+    e('button', { onClick: () => setPhase("start"), style: { background: accent, color: "#060e1c", border: "none", borderRadius: 12, padding: "13px 44px", fontSize: 16, fontWeight: 900, cursor: "pointer" } }, "VOLVER")
   );
 
   if (phase === "ready") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font } },
@@ -396,6 +473,10 @@ function FlagGame() {
       e('div', { style: { color: "#475569", fontSize: 13, marginBottom: 10 } }, `${rank.split(" ").slice(1).join(" ")} · ${history.filter(h => h.result === "✓").length} acertadas`),
       round && feedback !== "correct" && e('div', { style: { color: "#64748b", fontSize: 13, marginBottom: 20, textAlign: "center" } },
         "Era ", e('strong', { style: { color: "#f1f5f9" } }, round.correct.name), " ", round.correct.emoji
+      ),
+      e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 220, overflowY: "auto", marginBottom: 16 } },
+        e('div', { style: { color: "#475569", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, textAlign: "center" } }, "Ranking"),
+        e(RankingPanel, { list: ranking, currentEntryId: lastEntryId })
       ),
       history.length > 0 && e('div', { style: { background: surface, borderRadius: 12, padding: "10px 18px", width: "100%", maxWidth: 320, maxHeight: 200, overflowY: "auto", marginBottom: 24 } },
         ...[...history].reverse().map((h, i) =>
