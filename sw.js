@@ -5,5 +5,9 @@ const URLS = [
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js'
 ];
-self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS))));
+self.addEventListener('install', e => e.waitUntil(
+  caches.open(CACHE).then(c => Promise.all(
+    URLS.map(url => fetch(url).then(res => res.ok && c.put(url, res)).catch(() => {}))
+  ))
+));
 self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
