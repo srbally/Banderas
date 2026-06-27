@@ -333,6 +333,7 @@ function FlagGame() {
   const [history, setHistory] = useState([]);
   const [ranking, setRanking] = useState(() => loadRanking());
   const [lastEntryId, setLastEntryId] = useState(null);
+  const [updating, setUpdating] = useState(false);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const lockedRef = useRef(false);
@@ -429,11 +430,41 @@ function FlagGame() {
     }
   };
 
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } finally {
+      location.href = location.pathname + '?t=' + Date.now();
+    }
+  };
+
   const e = React.createElement;
   const font = "'Segoe UI', system-ui, sans-serif";
   const center = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" };
 
   if (phase === "start") return e('div', { style: { ...center, background: bg, minHeight: "100dvh", fontFamily: font, padding: "24px" } },
+    e('button', {
+      onClick: handleUpdate,
+      disabled: updating,
+      title: "Buscar la última versión",
+      style: {
+        position: "fixed", top: 14, right: 14, background: "none", border: "1px solid #1e3a5f",
+        color: "#64748b", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 700,
+        display: "flex", alignItems: "center", gap: 6, cursor: updating ? "default" : "pointer"
+      }
+    },
+      e('span', { style: { display: "inline-block", animation: updating ? "spin 1s linear infinite" : "none" } }, "⟳"),
+      updating ? "Actualizando…" : "Actualizar"
+    ),
+    e('style', null, "@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }"),
     e('div', { style: { fontSize: 72, marginBottom: 12, lineHeight: 1 } }, "🌍"),
     e('h1', { style: { color: accent, fontSize: 34, fontWeight: 900, letterSpacing: "-1px", marginBottom: 6, textAlign: "center" } }, "FLAG RUSH"),
     e('p', { style: { color: "#475569", fontSize: 13, marginBottom: 32, textAlign: "center" } }, `${COUNTRIES.length} países · 3 banderas · 5 segundos`),
