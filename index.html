@@ -518,7 +518,7 @@ function FlagGame() {
       disabled: updating,
       title: "Buscar la última versión",
       style: {
-        position: "fixed", top: 14, right: 14, background: "none", border: "1px solid #1e3a5f",
+        position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 56px)", right: 14, background: "none", border: "1px solid #1e3a5f",
         color: "#64748b", borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 700,
         display: "flex", alignItems: "center", gap: 6, cursor: updating ? "default" : "pointer"
       }
